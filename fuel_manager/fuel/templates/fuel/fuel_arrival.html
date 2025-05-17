@@ -1,0 +1,38 @@
+{% extends 'fuel/base.html' %}
+
+{% block title %}Приход топлива{% endblock %}
+
+{% block content %}
+<h2>Приход топлива</h2>
+
+<form method="post" novalidate>
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    <div class="mb-3">
+        <label for="{{ form.reservoir.id_for_label }}" class="form-label">{{ form.reservoir.label }}</label>
+        {{ form.reservoir }}
+        {% if form.reservoir.errors %}
+            <div class="text-danger">{{ form.reservoir.errors }}</div>
+        {% endif %}
+    </div>
+
+    <div class="mb-3">
+        <label for="{{ form.liters.id_for_label }}" class="form-label">{{ form.liters.label }}</label>
+        {{ form.liters }}
+        {% if form.liters.errors %}
+            <div class="text-danger">{{ form.liters.errors }}</div>
+        {% endif %}
+    </div>
+
+    <div class="mb-3">
+        <label for="{{ form.price_per_liter.id_for_label }}" class="form-label">{{ form.price_per_liter.label }}</label>
+        {{ form.price_per_liter }}
+        {% if form.price_per_liter.errors %}
+            <div class="text-danger">{{ form.price_per_liter.errors }}</div>
+        {% endif %}
+    </div>
+
+    <button type="submit" class="btn btn-success">Добавить приход</button>
+</form>
+{% endblock %}
