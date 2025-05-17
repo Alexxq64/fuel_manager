@@ -1,0 +1,38 @@
+{% extends 'fuel/base.html' %}
+{% block title %}Заправка{% endblock %}
+{% block content %}
+
+<h2>Заправка</h2>
+
+<form method="post" novalidate>
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    <div class="mb-3">
+        <label class="form-label">{{ form.nozzle.label }}</label>
+        {{ form.nozzle }}
+        {% if form.nozzle.errors %}
+            <div class="text-danger">{{ form.nozzle.errors }}</div>
+        {% endif %}
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">{{ form.liters.label }}</label>
+        {{ form.liters }}
+        {% if form.liters.errors %}
+            <div class="text-danger">{{ form.liters.errors }}</div>
+        {% endif %}
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">{{ form.amount.label }}</label>
+        {{ form.amount }}
+        {% if form.amount.errors %}
+            <div class="text-danger">{{ form.amount.errors }}</div>
+        {% endif %}
+    </div>
+
+    <button type="submit" class="btn btn-primary">Заправить</button>
+</form>
+
+{% endblock %}

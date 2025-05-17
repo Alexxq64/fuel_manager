@@ -1,38 +1,59 @@
 {% extends 'fuel/base.html' %}
-
-{% block title %}Приход топлива{% endblock %}
+{% load static %}
 
 {% block content %}
-<h2>Приход топлива</h2>
-
-<form method="post" novalidate>
+<div class="container mt-4">
+  <h2>Приход топлива</h2>
+  <form method="post">
     {% csrf_token %}
-    {{ form.non_field_errors }}
 
     <div class="mb-3">
-        <label for="{{ form.reservoir.id_for_label }}" class="form-label">{{ form.reservoir.label }}</label>
-        {{ form.reservoir }}
-        {% if form.reservoir.errors %}
-            <div class="text-danger">{{ form.reservoir.errors }}</div>
-        {% endif %}
+      {{ form.fuel_type.label_tag }}
+      {{ form.fuel_type }}
     </div>
 
     <div class="mb-3">
-        <label for="{{ form.liters.id_for_label }}" class="form-label">{{ form.liters.label }}</label>
-        {{ form.liters }}
-        {% if form.liters.errors %}
-            <div class="text-danger">{{ form.liters.errors }}</div>
-        {% endif %}
+      {{ form.tank.label_tag }}
+      <select name="tank" id="id_tank" class="form-select">
+        <option value="">Сначала выберите тип топлива</option>
+        {% for tank in form.fields.tank.queryset %}
+          <option value="{{ tank.id }}" data-fuel="{{ tank.fuel_type.id }}">{{ tank.name }}</option>
+        {% endfor %}
+      </select>
     </div>
 
     <div class="mb-3">
-        <label for="{{ form.price_per_liter.id_for_label }}" class="form-label">{{ form.price_per_liter.label }}</label>
-        {{ form.price_per_liter }}
-        {% if form.price_per_liter.errors %}
-            <div class="text-danger">{{ form.price_per_liter.errors }}</div>
-        {% endif %}
+      {{ form.liters.label_tag }}
+      {{ form.liters }}
     </div>
 
-    <button type="submit" class="btn btn-success">Добавить приход</button>
-</form>
+    <div class="mb-3">
+      {{ form.price_per_liter.label_tag }}
+      {{ form.price_per_liter }}
+    </div>
+
+    <button type="submit" class="btn btn-success">Сохранить</button>
+  </form>
+</div>
+
+<script>
+  const fuelTypeSelect = document.getElementById('id_fuel_type');
+  const tankSelect = document.getElementById('id_tank');
+
+  function filterTanks() {
+    const selectedFuel = fuelTypeSelect.value;
+
+    [...tankSelect.options].forEach(option => {
+      if (!option.value) return;
+
+      const fuelId = option.getAttribute('data-fuel');
+      option.style.display = (fuelId === selectedFuel) ? 'block' : 'none';
+    });
+
+    tankSelect.value = ''; // Сбросить выбор
+  }
+
+  fuelTypeSelect.addEventListener('change', filterTanks);
+  document.addEventListener('DOMContentLoaded', filterTanks);
+</script>
 {% endblock %}
