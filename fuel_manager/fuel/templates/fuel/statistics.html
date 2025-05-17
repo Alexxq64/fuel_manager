@@ -1,0 +1,67 @@
+{% extends 'fuel/base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Статистика операций</h2>
+
+  <form method="get" class="row g-3">
+    <div class="col-md-4">{{ form.start_date.label_tag }} {{ form.start_date }}</div>
+    <div class="col-md-4">{{ form.end_date.label_tag }} {{ form.end_date }}</div>
+    <div class="col-md-4">
+      <label>&nbsp;</label><br>
+      <button type="submit" class="btn btn-primary">Фильтровать</button>
+    </div>
+  </form>
+
+  <canvas id="fuelChart" class="mt-5"></canvas>
+
+  <h3 class="mt-5">История</h3>
+  <table class="table table-bordered table-striped mt-3">
+    <thead>
+      <tr>
+        <th>Дата</th>
+        <th>Тип операции</th>
+        <th>Резервуар</th>
+        <th>Литры</th>
+        <th>Сумма</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in transactions %}
+        <tr>
+          <td>{{ t.datetime|date:"Y-m-d H:i" }}</td>
+          <td>{{ t.get_operation_type_display }}</td>
+          <td>{{ t.tank }}</td>
+          <td>{{ t.liters }}</td>
+          <td>{{ t.amount }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">Нет данных</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const ctx = document.getElementById('fuelChart').getContext('2d');
+  const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: {{ labels|safe }},
+      datasets: [{
+        label: 'Литры',
+        data: {{ data|safe }},
+        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+</script>
+{% endblock %}

@@ -76,3 +76,37 @@ def refuel(request):
         form = RefuelForm()
 
     return render(request, 'fuel/refuel.html', {'form': form})
+
+from .forms import StatisticsFilterForm
+
+@login_required
+def statistics_view(request):
+    form = StatisticsFilterForm(request.GET or None)
+    transactions = Transaction.objects.all()
+
+    if form.is_valid():
+        start = form.cleaned_data.get('start_date')
+        end = form.cleaned_data.get('end_date')
+
+        if start:
+            transactions = transactions.filter(datetime__date__gte=start)
+        if end:
+            transactions = transactions.filter(datetime__date__lte=end)
+
+    # Подготовка данных для графика
+    chart_data = {}
+    for t in transactions:
+        day = t.datetime.date().isoformat()
+        chart_data.setdefault(day, 0)
+        chart_data[day] += float(t.liters)
+
+    labels = list(chart_data.keys())
+    data = list(chart_data.values())
+
+    context = {
+        'form': form,
+        'transactions': transactions.order_by('-datetime'),
+        'labels': labels,
+        'data': data,
+    }
+    return render(request, 'fuel/statistics.html', context)

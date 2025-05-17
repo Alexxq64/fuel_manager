@@ -50,3 +50,15 @@ class RefuelForm(forms.Form):
         if liters and amount:
             raise forms.ValidationError("Укажите только литры ИЛИ только сумму.")
         return cleaned_data
+
+class StatisticsFilterForm(forms.Form):
+    start_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        label='С даты'
+    )
+    end_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        label='По дату'
+    )
