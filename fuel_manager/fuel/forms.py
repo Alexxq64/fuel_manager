@@ -34,11 +34,24 @@ class FuelArrivalForm(forms.Form):
         self.fields['tank'].queryset = Tank.objects.all()
 
 
-from .models import Nozzle
+from .models import Nozzle, Client
 class RefuelForm(forms.Form):
-    nozzle = forms.ModelChoiceField(queryset=Nozzle.objects.select_related('pump', 'tank'), label='Пистолет')
-    liters = forms.DecimalField(required=False, min_value=0.01, decimal_places=2, label='Литры')
-    amount = forms.DecimalField(required=False, min_value=0.01, decimal_places=2, label='Сумма')
+    nozzle = forms.ModelChoiceField(
+        queryset=Nozzle.objects.select_related('pump', 'tank'),
+        label='Пистолет'
+    )
+    liters = forms.DecimalField(
+        required=False, min_value=0.01, decimal_places=2, label='Литры'
+    )
+    amount = forms.DecimalField(
+        required=False, min_value=0.01, decimal_places=2, label='Сумма'
+    )
+    client = forms.ModelChoiceField(
+        queryset=Client.objects.all(),
+        required=False,
+        empty_label="Покупатель (анонимно)",
+        label='Клиент'
+    )
 
     def clean(self):
         cleaned_data = super().clean()
@@ -50,6 +63,7 @@ class RefuelForm(forms.Form):
         if liters and amount:
             raise forms.ValidationError("Укажите только литры ИЛИ только сумму.")
         return cleaned_data
+
 
 class StatisticsFilterForm(forms.Form):
     start_date = forms.DateField(

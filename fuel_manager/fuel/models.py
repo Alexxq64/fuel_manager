@@ -43,6 +43,7 @@ class Transaction(models.Model):
 
     tank = models.ForeignKey('Tank', on_delete=models.CASCADE)
     nozzle = models.ForeignKey('Nozzle', on_delete=models.SET_NULL, null=True, blank=True)
+    client = models.ForeignKey('Client', on_delete=models.SET_NULL, null=True, blank=True)
 
     operator = models.ForeignKey(User, on_delete=models.CASCADE)
     liters = models.DecimalField(max_digits=10, decimal_places=2)
@@ -62,3 +63,10 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"{self.get_operation_type_display()} {self.liters} л ({self.tank})"
+
+class Client(models.Model):
+    name = models.CharField(max_length=100)
+    is_corporate = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.name

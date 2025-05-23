@@ -45,16 +45,31 @@ def fuel_arrival(request):
     return render(request, 'fuel/fuel_arrival.html', {'form': form})
 
 
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
 from .forms import RefuelForm
+from .models import Nozzle, Transaction
+from collections import defaultdict
 
 @login_required
 def refuel(request):
+    # Загружаем пистолеты с привязкой к колонкам и типам топлива
+    nozzles = Nozzle.objects.select_related('pump', 'tank__fuel_type')
+
+    # Группируем пистолеты по колонке
+    grouped_nozzles = defaultdict(list)
+    for nozzle in nozzles:
+        grouped_nozzles[nozzle.pump].append(nozzle)
+
     if request.method == 'POST':
         form = RefuelForm(request.POST)
+        # Обновляем queryset, чтобы шаблон корректно отрисовал radio-кнопки
+        form.fields['nozzle'].queryset = nozzles
         if form.is_valid():
             nozzle = form.cleaned_data['nozzle']
             liters = form.cleaned_data['liters']
             amount = form.cleaned_data['amount']
+            client = form.cleaned_data.get('client')
             tank = nozzle.tank
 
             transaction = Transaction(
@@ -64,18 +79,23 @@ def refuel(request):
                 operator=request.user,
                 liters=liters or 0,
                 amount=amount or 0,
+                client=client
             )
 
             try:
-                transaction.clean()  # вызов валидации из модели
+                transaction.clean()
                 transaction.save()
                 return redirect('home')
             except Exception as e:
                 form.add_error(None, str(e))
     else:
         form = RefuelForm()
+        form.fields['nozzle'].queryset = nozzles
 
-    return render(request, 'fuel/refuel.html', {'form': form})
+    return render(request, 'fuel/refuel.html', {
+        'form': form,
+        'grouped_nozzles': grouped_nozzles.items()  # передаём как (pump, [nozzles])
+    })
 
 from .forms import StatisticsFilterForm
 
