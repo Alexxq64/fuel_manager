@@ -4,7 +4,7 @@
 
 <h2 class="mb-4">Заправка</h2>
 
-<form method="post" novalidate>
+<form method="post" novalidate id="refuel-form">
     {% csrf_token %}
     {{ form.non_field_errors }}
 
@@ -18,7 +18,7 @@
                     <div class="card-body d-grid gap-3">
                         {% for nozzle in nozzles %}
                             {% with fuel_type=nozzle.tank.fuel_type.name %}
-                                <input type="radio" class="btn-check" name="nozzle" id="nozzle-{{ nozzle.id }}" value="{{ nozzle.id }}"
+                                <input type="radio" class="btn-check nozzle-radio" name="nozzle" id="nozzle-{{ nozzle.id }}" value="{{ nozzle.id }}"
                                        {% if form.data.nozzle == nozzle.id|stringformat:"s" %}checked{% endif %}>
                                 <label class="btn btn-outline-secondary rounded-pill py-2 shadow-sm fw-semibold"
                                        for="nozzle-{{ nozzle.id }}">
@@ -44,40 +44,67 @@
 
     <div class="mb-3">
         <label class="form-label" for="{{ form.liters.id_for_label }}">{{ form.liters.label }}</label>
-        <input type="number" name="{{ form.liters.name }}" id="{{ form.liters.id_for_label }}"
-               class="form-control" step="0.01" min="0.01"
-               value="{{ form.liters.value|default_if_none:'' }}">
-        {% if form.liters.errors %}
-            <div class="text-danger">{{ form.liters.errors }}</div>
-        {% endif %}
+        {{ form.liters }}
+        {% for error in form.liters.errors %}
+            <div class="text-danger">{{ error }}</div>
+        {% endfor %}
     </div>
 
     <div class="mb-3">
         <label class="form-label" for="{{ form.amount.id_for_label }}">{{ form.amount.label }}</label>
-        <input type="number" name="{{ form.amount.name }}" id="{{ form.amount.id_for_label }}"
-               class="form-control" step="0.01" min="0.01"
-               value="{{ form.amount.value|default_if_none:'' }}">
-        {% if form.amount.errors %}
-            <div class="text-danger">{{ form.amount.errors }}</div>
-        {% endif %}
+        {{ form.amount }}
+        {% for error in form.amount.errors %}
+            <div class="text-danger">{{ error }}</div>
+        {% endfor %}
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Цена за литр (заполняется автоматически)</label>
+        <input type="number" id="selling-price" class="form-control" step="0.01" min="0.01" readonly>
     </div>
 
     <div class="mb-3">
         <label class="form-label" for="{{ form.client.id_for_label }}">{{ form.client.label }}</label>
-        <select name="{{ form.client.name }}" id="{{ form.client.id_for_label }}" class="form-select">
-            <option value="">---------</option>
-            {% for val, label in form.client.field.choices %}
-                <option value="{{ val }}" {% if form.client.value == val %}selected{% endif %}>
-                    {{ label }}
-                </option>
-            {% endfor %}
-        </select>
-        {% if form.client.errors %}
-            <div class="text-danger">{{ form.client.errors }}</div>
-        {% endif %}
+        {{ form.client }}
+        {% for error in form.client.errors %}
+            <div class="text-danger">{{ error }}</div>
+        {% endfor %}
     </div>
 
     <button type="submit" class="btn btn-success w-100 py-2 fw-bold">🚗 Заправить</button>
 </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const radios = document.querySelectorAll('.nozzle-radio');
+    const priceInput = document.getElementById('selling-price');
+
+    radios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            const nozzleId = this.value;
+
+            fetch("{% url 'get_price_for_nozzle' %}?nozzle_id=" + nozzleId)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.price) {
+                        priceInput.value = data.price.toFixed(2);
+                    } else {
+                        priceInput.value = '';
+                        alert(data.error || 'Ошибка при получении цены');
+                    }
+                })
+                .catch(() => {
+                    priceInput.value = '';
+                    alert('Ошибка сети при получении цены');
+                });
+        });
+    });
+
+    const checkedRadio = document.querySelector('.nozzle-radio:checked');
+    if (checkedRadio) {
+        checkedRadio.dispatchEvent(new Event('change'));
+    }
+});
+</script>
 
 {% endblock %}

@@ -35,17 +35,31 @@ class FuelArrivalForm(forms.Form):
 
 
 from .models import Nozzle, Client
+from django import forms
+from .models import Nozzle, Client
+
 class RefuelForm(forms.Form):
     nozzle = forms.ModelChoiceField(
         queryset=Nozzle.objects.select_related('pump', 'tank'),
-        label='Пистолет'
+        label='Пистолет',
+        empty_label=None,
+        widget=forms.RadioSelect
     )
     liters = forms.DecimalField(
-        required=False, min_value=0.01, decimal_places=2, label='Литры'
+        required=False,
+        min_value=0.01,
+        decimal_places=2,
+        max_digits=10,
+        label='Литры'
     )
     amount = forms.DecimalField(
-        required=False, min_value=0.01, decimal_places=2, label='Сумма'
+        required=False,
+        min_value=0.01,
+        decimal_places=2,
+        max_digits=12,
+        label='Сумма'
     )
+    # Убираем selling_price_per_liter из формы, так как оно readonly в шаблоне и не нужно на сервере
     client = forms.ModelChoiceField(
         queryset=Client.objects.all(),
         required=False,
@@ -59,9 +73,10 @@ class RefuelForm(forms.Form):
         amount = cleaned_data.get('amount')
 
         if not liters and not amount:
-            raise forms.ValidationError("Укажите либо литры, либо сумму.")
+            raise forms.ValidationError("Укажите либо объем в литрах, либо сумму.")
         if liters and amount:
-            raise forms.ValidationError("Укажите только литры ИЛИ только сумму.")
+            raise forms.ValidationError("Укажите только объем в литрах ИЛИ только сумму, не оба значения.")
+
         return cleaned_data
 
 
