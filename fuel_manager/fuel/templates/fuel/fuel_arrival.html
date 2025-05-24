@@ -2,39 +2,48 @@
 {% load static %}
 
 {% block content %}
-<div class="container mt-4">
-  <h2>Приход топлива</h2>
-  <form method="post">
-    {% csrf_token %}
+<div class="container mt-5">
+  <div class="card shadow-sm p-4" style="max-width: 400px; margin: 0 auto;">
+    <h2 class="mb-4 text-center">Приход топлива</h2>
+    <form method="post" class="form-equal-width">
+      {% csrf_token %}
 
-    <div class="mb-3">
-      {{ form.fuel_type.label_tag }}
-      {{ form.fuel_type }}
-    </div>
+      <div class="mb-3">
+        <label for="id_fuel_type" class="form-label">{{ form.fuel_type.label }}</label>
+        {{ form.fuel_type }}
+      </div>
 
-    <div class="mb-3">
-      {{ form.tank.label_tag }}
-      <select name="tank" id="id_tank" class="form-select">
-        <option value="">Сначала выберите тип топлива</option>
-        {% for tank in form.fields.tank.queryset %}
-          <option value="{{ tank.id }}" data-fuel="{{ tank.fuel_type.id }}">{{ tank.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
+      <div class="mb-3">
+        <label for="id_tank" class="form-label">{{ form.tank.label }}</label>
+        {{ form.tank }}
+      </div>
 
-    <div class="mb-3">
-      {{ form.liters.label_tag }}
-      {{ form.liters }}
-    </div>
+      <div class="mb-3">
+        <label for="id_liters" class="form-label">{{ form.liters.label }}</label>
+        {{ form.liters }}
+      </div>
 
-    <div class="mb-3">
-      {{ form.price_per_liter.label_tag }}
-      {{ form.price_per_liter }}
-    </div>
+      <div class="mb-3">
+        <label for="id_price_per_liter" class="form-label">{{ form.price_per_liter.label }}</label>
+        {{ form.price_per_liter }}
+      </div>
 
-    <button type="submit" class="btn btn-success">Сохранить</button>
-  </form>
+      <div class="d-grid">
+        <button type="submit" class="btn btn-success">Сохранить</button>
+      </div>
+    </form>
+  </div>
 </div>
+
+<style>
+  /* Жестко задаем одинаковую ширину для всех элементов формы */
+  .form-equal-width select,
+  .form-equal-width input,
+  .form-equal-width button {
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+</style>
 
 <script>
   const fuelTypeSelect = document.getElementById('id_fuel_type');
@@ -50,7 +59,7 @@
       option.style.display = (fuelId === selectedFuel) ? 'block' : 'none';
     });
 
-    tankSelect.value = ''; // Сбросить выбор
+    tankSelect.value = '';
   }
 
   fuelTypeSelect.addEventListener('change', filterTanks);

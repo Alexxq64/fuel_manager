@@ -59,14 +59,6 @@ def fuel_arrival(request):
 
     return render(request, 'fuel/fuel_arrival.html', {'form': form})
 
-
-
-from collections import defaultdict
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from .models import Nozzle, Transaction
-from .forms import RefuelForm
-
 @login_required
 def refuel(request):
     # Получаем все пистолеты с данными о колонках и топливе

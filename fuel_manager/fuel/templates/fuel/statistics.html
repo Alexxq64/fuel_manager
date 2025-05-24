@@ -3,65 +3,222 @@
 <div class="container mt-4">
   <h2>Статистика операций</h2>
 
-  <form method="get" class="row g-3">
-    <div class="col-md-4">{{ form.start_date.label_tag }} {{ form.start_date }}</div>
-    <div class="col-md-4">{{ form.end_date.label_tag }} {{ form.end_date }}</div>
-    <div class="col-md-4">
-      <label>&nbsp;</label><br>
-      <button type="submit" class="btn btn-primary">Фильтровать</button>
+  <form id="dateFilterForm" class="mb-4">
+    <div class="mb-2">
+      <label for="id_start_date">С даты</label><br>
+      {{ form.start_date }}
+    </div>
+    <div class="mb-3">
+      <label for="id_end_date">По дату</label><br>
+      {{ form.end_date }}
+    </div>
+
+    <div class="mb-3">
+      <button type="button" id="btnToday" class="btn btn-outline-primary btn-sm me-1">Сегодня</button>
+      <button type="button" id="btnYesterday" class="btn btn-outline-primary btn-sm me-1">Вчера</button>
+      <button type="button" id="btnLastNDays" class="btn btn-outline-primary btn-sm me-1">
+        Последние <input id="lastNDaysInput" type="number" min="1" max="365" value="30" style="width: 50px; display: inline-block; vertical-align: middle;"> дней
+      </button>
+      <button type="button" id="btnResetFilters" class="btn btn-outline-secondary btn-sm">Сброс фильтров</button>
     </div>
   </form>
 
-  <canvas id="fuelChart" class="mt-5"></canvas>
-
-  <h3 class="mt-5">История</h3>
-  <table class="table table-bordered table-striped mt-3">
+  <table id="transactionsTable" class="table table-bordered table-striped">
     <thead>
       <tr>
         <th>Дата</th>
-        <th>Тип операции</th>
         <th>Резервуар</th>
+        <th>Топливо</th>
         <th>Литры</th>
+        <th>Касса</th>
         <th>Сумма</th>
       </tr>
     </thead>
+    <tfoot>
+      <tr>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+      </tr>
+    </tfoot>
     <tbody>
       {% for t in transactions %}
         <tr>
           <td>{{ t.datetime|date:"Y-m-d H:i" }}</td>
-          <td>{{ t.get_operation_type_display }}</td>
           <td>{{ t.tank }}</td>
-          <td>{{ t.liters }}</td>
-          <td>{{ t.amount }}</td>
+          <td>{{ t.get_operation_type_display }}</td>
+          <td data-op="{{ t.operation_type }}" data-value="{{ t.liters }}" style="color: {% if t.operation_type == 'IN' %}green{% else %}red{% endif %}; font-weight: 600;">
+            {{ t.liters }}
+          </td>
+          <td>{% if t.operation_type == 'IN' %}Покупка{% else %}Продажа{% endif %}</td>
+          <td data-op="{{ t.operation_type }}" data-value="{{ t.amount }}" style="color: {% if t.operation_type == 'IN' %}red{% else %}green{% endif %}; font-weight: 600;">
+            {{ t.amount }}
+          </td>
         </tr>
       {% empty %}
-        <tr><td colspan="5">Нет данных</td></tr>
+        <tr><td colspan="6">Нет данных</td></tr>
       {% endfor %}
     </tbody>
+    <tfoot>
+      <tr>
+        <th colspan="3" class="text-end">Всего литров:</th>
+        <th id="netLiters"></th>
+        <th></th>
+        <th></th>
+      </tr>
+      <tr>
+        <th colspan="5" class="text-end">Всего денег:</th>
+        <th id="netAmount"></th>
+      </tr>
+    </tfoot>
   </table>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+
 <script>
-  const ctx = document.getElementById('fuelChart').getContext('2d');
-  const chart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: {{ labels|safe }},
-      datasets: [{
-        label: 'Литры',
-        data: {{ data|safe }},
-        backgroundColor: 'rgba(54, 162, 235, 0.5)',
-        borderColor: 'rgba(54, 162, 235, 1)',
-        borderWidth: 1
-      }]
+$(document).ready(function() {
+  let table = $('#transactionsTable').DataTable({
+    language: {
+      url: '//cdn.datatables.net/plug-ins/1.10.24/i18n/Russian.json'
     },
-    options: {
-      responsive: true,
-      scales: {
-        y: { beginAtZero: true }
-      }
+    dom: 'lrtip',
+    initComplete: function () {
+      this.api().columns().every(function () {
+        let column = this;
+        let colIdx = column.index();
+
+        if (colIdx === 0) {
+          $(column.footer()).empty();
+          return;
+        }
+
+        if ([1, 2, 4].includes(colIdx)) {
+          let select = $('<select><option value="">Все</option></select>')
+            .appendTo($(column.footer()).empty())
+            .on('change', function () {
+              let val = $.fn.dataTable.util.escapeRegex($(this).val());
+              column.search(val ? '^' + val + '$' : '', true, false).draw();
+            });
+
+          column.data().unique().sort().each(function (d) {
+            select.append('<option value="' + d + '">' + d + '</option>');
+          });
+        } else {
+          $('<input type="text" placeholder="Поиск" />')
+            .appendTo($(column.footer()).empty())
+            .on('keyup change clear', function () {
+              if (column.search() !== this.value) {
+                column.search(this.value).draw();
+              }
+            });
+        }
+      });
+    },
+    footerCallback: function(row, data, start, end, display) {
+      let api = this.api();
+
+      let parseValue = val => parseFloat(val.replace(',', '.')) || 0;
+
+      let totalLiters = 0;
+      let totalMoney = 0;
+
+      api.column(3, {search:'applied'}).nodes().each(function(cell) {
+        let op = $(cell).attr('data-op');
+        let val = parseValue($(cell).attr('data-value'));
+        totalLiters += (op === 'IN' ? val : -val);
+      });
+
+      api.column(5, {search:'applied'}).nodes().each(function(cell) {
+        let op = $(cell).attr('data-op');
+        let val = parseValue($(cell).attr('data-value'));
+        totalMoney += (op === 'IN' ? -val : val);
+      });
+
+      $('#netLiters').text(totalLiters.toFixed(2));
+      $('#netAmount').text(totalMoney.toFixed(2));
     }
   });
+
+  function formatDate(date) {
+    let d = date.getDate();
+    let m = date.getMonth() + 1;
+    let y = date.getFullYear();
+    if (d < 10) d = '0' + d;
+    if (m < 10) m = '0' + m;
+    return y + '-' + m + '-' + d;
+  }
+
+  function setLastNDaysPeriod(days) {
+    let endDate = new Date();
+    let startDate = new Date();
+    startDate.setDate(endDate.getDate() - (days - 1));
+    
+    $('#id_start_date').val(formatDate(startDate));
+    $('#id_end_date').val(formatDate(endDate));
+    table.draw();
+  }
+
+  $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+    let startDate = $('#id_start_date').val();
+    let endDate = $('#id_end_date').val();
+    let dateStr = data[0];
+    let rowDate = new Date(dateStr);
+
+    if (startDate) {
+      let start = new Date(startDate);
+      if (rowDate < start) return false;
+    }
+    if (endDate) {
+      let end = new Date(endDate);
+      end.setHours(23,59,59,999);
+      if (rowDate > end) return false;
+    }
+    return true;
+  });
+
+  $('#id_start_date, #id_end_date').on('change', function() {
+    table.draw();
+  });
+
+  $('#btnToday').click(function() {
+    let today = new Date();
+    let str = formatDate(today);
+    $('#id_start_date').val(str);
+    $('#id_end_date').val(str);
+    table.draw();
+  });
+
+  $('#btnYesterday').click(function() {
+    let yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    let str = formatDate(yesterday);
+    $('#id_start_date').val(str);
+    $('#id_end_date').val(str);
+    table.draw();
+  });
+
+  $('#btnLastNDays').click(function() {
+    let days = parseInt($('#lastNDaysInput').val()) || 30;
+    if (days < 1) days = 1;
+    if (days > 365) days = 365;
+    setLastNDaysPeriod(days);
+  });
+
+  $('#btnResetFilters').click(function() {
+    $('#id_start_date').val('');
+    $('#id_end_date').val('');
+    $('#lastNDaysInput').val('30');
+    table.columns().search('').draw();
+  });
+
+  table.draw();
+});
 </script>
+
 {% endblock %}

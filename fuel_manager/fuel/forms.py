@@ -30,7 +30,6 @@ class FuelArrivalForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Для начальной отрисовки формы можно подтянуть все танки или оставить пустым
         self.fields['tank'].queryset = Tank.objects.all()
 
 
@@ -59,7 +58,6 @@ class RefuelForm(forms.Form):
         max_digits=12,
         label='Сумма'
     )
-    # Убираем selling_price_per_liter из формы, так как оно readonly в шаблоне и не нужно на сервере
     client = forms.ModelChoiceField(
         queryset=Client.objects.all(),
         required=False,
